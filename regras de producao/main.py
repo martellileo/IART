@@ -46,6 +46,12 @@ def imprimir_tabuleiro(matriz):
     print("-------------------------\n")
     
 def decisao(matriz):
+    if locHeroi[0][1] == locVilao[0][1]:
+        print("hit")
+        if HITS > 0: HITS -= 1
+        matriz[locVilao[0]][locVilao[1]] = 0
+        set_caracter(matriz, "V")
+
     # x > 2 1
     if locHeroi[0] > locVilao[0]:
         matriz[locHeroi[0]][locHeroi[1]] = 0
