@@ -2,10 +2,13 @@ import random as r
 
 HITS = 3
 TAMANHO = 10
+valor_dano = 1
+buff_ativo = True
 
-LOCHEROI = []
-LOCVILAO = []
-LOCBUFF = []
+locHeroi = []
+locVilao = []
+locBuff = []
+lista_prioridades = []
 
 def gerar_tabuleiro():
     tabuleiro = []
@@ -44,35 +47,95 @@ def imprimir_tabuleiro(matriz):
         linha_formatada = " ".join(str(celula) if celula != 0 else "." for celula in linha)
         print(linha_formatada)
     print("-------------------------\n")
-    
-def decisao(matriz):
-    if locHeroi[0][1] == locVilao[0][1]:
-        print("hit")
-        if HITS > 0: HITS -= 1
-        matriz[locVilao[0]][locVilao[1]] = 0
-        set_caracter(matriz, "V")
 
-    # x > 2 1
-    if locHeroi[0] > locVilao[0]:
-        matriz[locHeroi[0]][locHeroi[1]] = 0
+def decisao(matriz):
+    global lista_prioridades, locHeroi, locVilao, locBuff, buff_ativo
+    lista_prioridades = []
+
+    if not locVilao:
+        lista_prioridades.append({"acao": "SPAWN_VILAO", "peso": 110})
+
+    if locVilao and locHeroi == locVilao:
+        lista_prioridades.append({"acao": "HIT", "peso": 100})
+    
+    if buff_ativo and locHeroi == locBuff:
+        lista_prioridades.append({"acao": "COLETAR_BUFF", "peso": 95})
+
+    if locVilao:
+        if locHeroi[0] > locVilao[0]:
+            lista_prioridades.append({"acao": "MOVER_CIMA", "peso": 60})
+        
+        if locHeroi[0] < locVilao[0]:
+            lista_prioridades.append({"acao": "MOVER_BAIXO", "peso": 55})
+
+        if locHeroi[1] > locVilao[1]:
+            lista_prioridades.append({"acao": "MOVER_ESQUERDA", "peso": 50})
+        
+        if locHeroi[1] < locVilao[1]:
+            lista_prioridades.append({"acao": "MOVER_DIREITA", "peso": 45})
+
+    realizar(matriz)
+
+def realizar(matriz):
+    global HITS, locHeroi, locVilao, locBuff, lista_prioridades, valor_dano, buff_ativo
+
+    if not lista_prioridades:
+        return
+
+    melhor_acao = max(lista_prioridades, key=lambda item: item['peso'])
+    acao = melhor_acao['acao']
+    
+    print(f"lista de turn {lista_prioridades}")
+    print(f"best turn: {acao} (Peso: {melhor_acao['peso']})")
+
+    if acao == "SPAWN_VILAO":
+        locVilao = set_caracter(matriz, "V")
+        return
+
+    if acao == "HIT":
+        HITS -= valor_dano
+        matriz[locHeroi[0]][locHeroi[1]] = "H"
+        locVilao = [] 
+        return
+
+    if acao == "COLETAR_BUFF":
+        valor_dano = 2
+        buff_ativo = False
+        return
+
+    matriz[locHeroi[0]][locHeroi[1]] = 0
+
+    if acao == "MOVER_CIMA":
         locHeroi[0] -= 1
+    elif acao == "MOVER_BAIXO":
+        locHeroi[0] += 1
+    elif acao == "MOVER_ESQUERDA":
+        locHeroi[1] -= 1
+    elif acao == "MOVER_DIREITA":
+        locHeroi[1] += 1
+
+    if locVilao and locHeroi == locVilao:
+        matriz[locHeroi[0]][locHeroi[1]] = "⚔️"
+    else:
         matriz[locHeroi[0]][locHeroi[1]] = "H"
 
 if __name__ == "__main__":
-    tabuleiro = gerar_tabuleiro()
+    tabuleiro_principal = gerar_tabuleiro()
     
-    gerar_heroi(tabuleiro)
-    gerar_vilao(tabuleiro)
-    gerar_buff(tabuleiro)
+    gerar_heroi(tabuleiro_principal)
+    gerar_vilao(tabuleiro_principal)
+    gerar_buff(tabuleiro_principal)
 
     while HITS > 0:
-        imprimir_tabuleiro(tabuleiro)
+        imprimir_tabuleiro(tabuleiro_principal)
         
-        print(f"Vida (Hits) restante: {HITS}")
-        print(f"Loc Heroi (H): {locHeroi}")
-        print(f"Loc Vilao (V): {locVilao}")
-        print(f"Loc Buff (B): {locBuff}")
+        print(f"hits {HITS} | Dano atual: {valor_dano}")
+        if buff_ativo:
+            print(f"locBuff: {locBuff}")
+            
+        print(f"locHeroi: {locHeroi} | locVilao: {locVilao}")
         
-        print("\nPressione Enter para atualizar o turno (ou Ctrl+C para sair)...")
         input()
-        decisao(tabuleiro)
+        decisao(tabuleiro_principal)
+    
+    print("\n--- end game ---")
